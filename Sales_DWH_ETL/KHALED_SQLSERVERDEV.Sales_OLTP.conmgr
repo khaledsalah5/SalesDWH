@@ -1,0 +1,12 @@
+﻿<?xml version="1.0"?>
+<DTS:ConnectionManager xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:ObjectName="KHALED_SQLSERVERDEV.Sales_OLTP"
+  DTS:DTSID="{90BFAA5C-6FC4-4E22-ACF8-6E269C04B11A}"
+  DTS:CreationName="OLEDB">
+  <DTS:ObjectData>
+    <DTS:ConnectionManager
+      DTS:ConnectRetryCount="1"
+      DTS:ConnectRetryInterval="5"
+      DTS:ConnectionString="Data Source=KHALED\SQLSERVERDEV;Initial Catalog=Sales_OLTP;Provider=SQLOLEDB.1;Integrated Security=SSPI;Application Name=SSIS-Sales_DWH_ETL-{90BFAA5C-6FC4-4E22-ACF8-6E269C04B11A}KHALED\SQLSERVERDEV.Sales_OLTP;Auto Translate=False;" />
+  </DTS:ObjectData>
+</DTS:ConnectionManager>
