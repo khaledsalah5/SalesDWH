@@ -7,6 +7,6 @@
     <DTS:ConnectionManager
       DTS:ConnectRetryCount="1"
       DTS:ConnectRetryInterval="5"
-      DTS:ConnectionString="Data Source=KHALED\SQLSERVERDEV;Initial Catalog=Sales_OLTP;Provider=SQLOLEDB.1;Integrated Security=SSPI;Application Name=SSIS-Sales_DWH_ETL-{90BFAA5C-6FC4-4E22-ACF8-6E269C04B11A}KHALED\SQLSERVERDEV.Sales_OLTP;Auto Translate=False;" />
+      DTS:ConnectionString="Data Source=YOUR_SQL_SERVER;Initial Catalog=Sales_OLTP;Provider=SQLOLEDB.1;Integrated Security=SSPI;Application Name=SSIS-Sales_DWH_ETL-{90BFAA5C-6FC4-4E22-ACF8-6E269C04B11A}YOUR_SQL_SERVER.Sales_OLTP;Auto Translate=False;" />
   </DTS:ObjectData>
 </DTS:ConnectionManager>
