@@ -1,208 +1,196 @@
-# Sales Data Warehouse ETL — SSIS
+# Sales OLTP to Data Warehouse — SSIS
 
 ## Overview
 
-This project implements an **SSIS-based ETL pipeline for a Sales Data Warehouse**. It extracts data from a sales OLTP database, loads dimensional tables, and incrementally processes sales facts into an analytics-ready warehouse.
+This project implements an **SSIS ETL pipeline from a Sales OLTP database into a dimensional Sales Data Warehouse**.
 
-The project demonstrates common Data Engineering and Data Warehousing patterns using the Microsoft data stack.
-
----
-
-## Architecture
+The pipeline loads Customer, Product, and Salesman dimensions, applies Slowly Changing Dimension logic, resolves warehouse keys using lookups, and incrementally loads sales facts.
 
 ```text
-Sales OLTP Database
-        │
-        ▼
-   SSIS ETL Layer
-        │
-        ├── Customer Dimension
-        ├── Product Dimension
-        ├── Salesman Dimension
-        │
-        ▼
- Dimensional Warehouse
-        │
-        ▼
+Sales_OLTP
+    │
+    ▼
+  SSIS ETL
+    │
+    ├── Customer Dimension
+    ├── Product Dimension
+    └── Salesman Dimension
+    │
+    ▼
+  Sales_Dim
+    │
+    ▼
 Incremental Sales Fact Load
 ```
 
-The repository separates dimension loading from fact processing so dimensions can be prepared before sales facts reference them.
+---
+
+## Why This Project Is Different
+
+This repository focuses on a custom **Sales OLTP → Data Warehouse** design.
+
+Unlike the AdventureWorks project, it emphasizes:
+
+- Customer, Product, and Salesman dimensions;
+- SCD processing across all three business dimensions;
+- incremental sales fact loading;
+- lookup-based resolution of warehouse surrogate keys.
 
 ---
 
 ## ETL Packages
 
 ### `CustomerDim.dtsx`
-
-Loads and transforms customer data into the customer dimension.
+Loads customer records into the warehouse and contains SSIS Slowly Changing Dimension logic for customer changes.
 
 ### `ProductDim.dtsx`
-
-Loads product information from the source system into the product dimension.
+Loads product data and uses SCD processing to manage changes to product attributes.
 
 ### `SalesmanDim.dtsx`
-
-Loads salesperson / salesman data into the corresponding warehouse dimension.
+Loads salesman / salesperson data and applies SCD handling to changing salesperson attributes.
 
 ### `Sales_incremental_Load_fact.dtsx`
-
-Processes the sales fact table using an **incremental load pattern**, avoiding the need to fully reload historical sales data on every execution.
+Incrementally loads sales facts and uses lookup transformations to resolve warehouse keys such as Product and Date keys before writing fact rows.
 
 ---
 
 ## Repository Structure
 
 ```text
-SalesDWH
+SalesDWH/
 │
 ├── Sales_DWH_ETL.sln
+├── README.md
 │
 └── Sales_DWH_ETL/
     ├── CustomerDim.dtsx
     ├── ProductDim.dtsx
     ├── SalesmanDim.dtsx
     ├── Sales_incremental_Load_fact.dtsx
-    │
     ├── KHALED_SQLSERVERDEV.Sales_OLTP.conmgr
     ├── KHALED_SQLSERVERDEV.Sales_Dim.conmgr
-    │
     ├── Project.params
-    ├── Sales_DWH_ETL.dtproj
-    └── Sales_DWH_ETL.database
+    └── Sales_DWH_ETL.dtproj
 ```
 
 ---
 
-## Data Flow
+## Source and Destination Separation
 
-The intended ETL sequence is:
-
-```text
-1. Load Customer Dimension
-2. Load Product Dimension
-3. Load Salesman Dimension
-4. Load new Sales Fact records incrementally
-```
-
-Loading dimensions first ensures that the warehouse has the required dimension records before fact data is processed.
-
----
-
-## Tech Stack
-
-- **SQL Server Integration Services (SSIS)**
-- **Microsoft SQL Server**
-- **T-SQL**
-- **Visual Studio / SQL Server Data Tools**
-- **Data Warehousing**
-- **Dimensional Modeling**
-- **Incremental ETL**
-
----
-
-## Connection Managers
-
-The SSIS project contains separate connection managers for the operational source and dimensional warehouse:
+The project contains dedicated SSIS connection managers for the operational and analytical databases:
 
 ```text
 KHALED_SQLSERVERDEV.Sales_OLTP.conmgr
 KHALED_SQLSERVERDEV.Sales_Dim.conmgr
 ```
 
-This keeps the transactional source and analytics destination logically separated.
+This models a common warehouse architecture where the transactional source and reporting warehouse are separate systems.
+
+---
+
+## Slowly Changing Dimensions
+
+The three dimension packages contain SSIS **Slowly Changing Dimension** components:
+
+```text
+CustomerDim
+ProductDim
+SalesmanDim
+```
+
+The SCD transformation uses lookup behavior to identify existing dimension records and determine how changes should be handled.
+
+This demonstrates change management in dimensions rather than treating every ETL run as a complete reload.
+
+---
+
+## Fact Loading
+
+The sales fact package is incremental rather than a full-reload package.
+
+Its processing pattern is roughly:
+
+```text
+New Sales Records
+       │
+       ▼
+Dimension Lookups
+       │
+       ├── Product warehouse key
+       ├── Date warehouse key
+       └── Other dimensional keys
+       │
+       ▼
+Sales Fact Table
+```
+
+Resolving dimensional keys before loading the fact table keeps the warehouse relationships consistent and separates operational identifiers from analytical surrogate keys.
+
+---
+
+## Recommended Execution Order
+
+```text
+1. CustomerDim.dtsx
+2. ProductDim.dtsx
+3. SalesmanDim.dtsx
+4. Sales_incremental_Load_fact.dtsx
+```
+
+Dimensions should be prepared before facts so the incremental fact process can resolve the required dimension records.
+
+---
+
+## Tech Stack
+
+- SQL Server Integration Services (SSIS)
+- Microsoft SQL Server
+- T-SQL
+- Visual Studio / SQL Server Data Tools
+- Dimensional Modeling
+- Slowly Changing Dimensions
+- Lookup Transformations
+- Incremental ETL
 
 ---
 
 ## How to Run
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/khaledsalah5/SalesDWH.git
-cd SalesDWH
-```
-
-### 2. Open the solution
-
-Open:
-
-```text
-Sales_DWH_ETL.sln
-```
-
-in Visual Studio with **SQL Server Integration Services Projects / SSDT** installed.
-
-### 3. Configure SQL Server connections
-
-Update the project connection managers to point to your local or development SQL Server environment:
-
-- Sales OLTP source database
-- Sales dimensional warehouse database
-
-### 4. Run dimension packages
-
-Execute the dimension packages before the fact load:
-
-```text
-CustomerDim.dtsx
-ProductDim.dtsx
-SalesmanDim.dtsx
-```
-
-### 5. Run the incremental fact load
-
-Execute:
-
-```text
-Sales_incremental_Load_fact.dtsx
-```
-
-to process new sales records into the fact table.
-
-### 6. Validate the load
-
-After execution, verify:
-
-- dimension row counts;
-- fact-table row counts;
-- newly inserted sales records;
-- key relationships between facts and dimensions.
+1. Open `Sales_DWH_ETL.sln` in Visual Studio with SSIS / SSDT installed.
+2. Configure the Sales OLTP source connection.
+3. Configure the Sales dimensional warehouse destination connection.
+4. Run the three dimension packages.
+5. Run `Sales_incremental_Load_fact.dtsx`.
+6. Validate:
+   - dimension row counts;
+   - fact row counts;
+   - newly inserted records;
+   - dimension-key relationships;
+   - SCD behavior for changed dimension records.
 
 ---
 
 ## Data Engineering Concepts Demonstrated
 
-### Dimensional Modeling
-
-The project organizes business entities such as customers, products, and salespeople into dimensions while sales transactions are represented in the fact layer.
-
-### ETL Dependency Management
-
-Dimensions are populated before facts to ensure the required dimension records are available when transactional data is loaded.
-
-### Incremental Loading
-
-Instead of rebuilding the entire fact table every time, the sales fact package focuses on loading new data. This pattern reduces unnecessary processing and is important for scalable production ETL systems.
-
-### Source and Warehouse Separation
-
-Separate connection managers represent the OLTP and analytical environments, reflecting the typical architecture where transactional systems and reporting warehouses serve different workloads.
+- OLTP-to-DWH integration;
+- dimensional modeling;
+- SCD processing;
+- surrogate-key lookup patterns;
+- fact/dimension dependency ordering;
+- incremental ETL;
+- separate source and destination connections;
+- analytics-ready relational modeling.
 
 ---
 
-## Project Purpose
+## Related Project
 
-This project demonstrates practical warehouse development using SSIS, including:
+This repository is different from **sales_data_DW**.
 
-- extracting data from an operational database;
-- transforming data for analytical use;
-- populating dimensions;
-- loading transactional facts;
-- implementing incremental ETL;
-- maintaining separation between source and warehouse systems.
+- **SalesDWH** → Sales OLTP → DWH with Customer, Product, Salesman, SCD processing, and incremental fact loading.
+- **sales_data_DW** → AdventureWorks warehouse with Customer, Product, Territory, Date, and both full + incremental fact loading.
 
-It is a compact example of building an analytics-ready data pipeline with SQL Server and SSIS.
+The two projects demonstrate similar SSIS fundamentals using different dimensional models and loading strategies.
 
 ---
 
